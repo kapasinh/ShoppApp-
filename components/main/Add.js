@@ -1,124 +1,114 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, TouchableOpacity, Image } from 'react-native';
 import { Camera } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'
+import { Component } from 'react';
+import { View,Text, NavigatorIOS} from 'react-native';
 
-export default function App() {
-    const [hasPermission, setHasPermission] = useState(null);
-    const [cameraRef, setCameraRef] = useState(null)
-    const [type, setType] = useState(Camera.Constants.Type.back);
-    const [recording, setRecording] = useState(false);
-    const [image, setImage] = useState(false);
+import React from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
 
-    useEffect(() => {
-        (async () => {
-            const { status } = await Camera.requestPermissionsAsync();
-            setHasPermission(status === 'granted');
-        })();
-    }, []);
-    if (hasPermission === null) {
-        return <View />;
+
+
+
+export class CameraClass extends Component{
+    state = {
+        hasPermission: null,
+        type: Camera.Constants.Type.back,
+      }
+    async componentDidMount() {
+        this.getPermissionAsync()
     }
-    if (hasPermission === false) {
-        return <Text>No access to camera</Text>;
+    getPermissionAsync = async () => {
+        // Camera roll Permission 
+        if (Platform.OS === 'ios') {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            alert('Sorry, we need camera roll permissions to make this work!');
+          }
+        }
+        // Camera Permission
+        const { status } = await Camera.requestPermissionsAsync();
+        this.setState({ hasPermission: status === 'granted' });
     }
-    return (
-        <View style={{ flex: 1 }}>
-            <Camera style={{ flex: 1 }} type={type} ref={ref => {
-                setCameraRef(ref);
-            }}>
-                <View
-                    style={{
-                        flex: 1,
+    
+    handleCameraType=()=>{
+      const { cameraType } = this.state
+
+      this.setState({cameraType:
+        cameraType === Camera.Constants.Type.back
+        ? Camera.Constants.Type.front
+        : Camera.Constants.Type.back
+      })
+    }
+    takePicture = async () => {
+        if (this.camera) {
+          let photo = await this.camera.takePictureAsync();
+          console.log(photo)
+        }
+    }
+    pickImage = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        });
+        console.log(result)
+    }
+    
+    
+    render(){
+        const { hasPermission } = this.state
+        if (hasPermission === null) {
+          return <View />;
+        } else if (hasPermission === false) {
+          return <Text>No access to camera</Text>;
+        } else {
+          return (
+              <View style={{ flex: 1 }}>
+                <Camera style={{ flex: 1 }} type={this.state.cameraType}  ref={ref => {this.camera = ref}}>
+                  <View style={{flex:1, flexDirection:"row", alignItems:'flex-end' ,justifyContent:"space-between",margin:30}}>
+                    <TouchableOpacity
+                      style={{
+                        alignSelf: 'flex-end',
+                        alignItems: 'center',
+                        backgroundColor: 'transparent'                 
+                      }}
+                      onPress={()=>this.pickImage()}>
+                      <MaterialCommunityIcons
+                          name="rectangle"
+                          style={{ color: "#fff", fontSize: 40}}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        alignSelf: 'flex-end',
+                        alignItems: 'center',
                         backgroundColor: 'transparent',
-                        justifyContent: 'flex-end'
-                    }}>
-                    <View style={{
-                        display: 'flex',
-                        flexDirection: 'row',
-                        justifyContent: 'space-evenly'
-                    }}>
-                        <TouchableOpacity
-                            style={{
-                                flex: 0.1,
-                                alignSelf: 'flex-end'
-                            }}
-                            onPress={() => {
-                                setType(
-                                    type === Camera.Constants.Type.back
-                                        ? Camera.Constants.Type.front
-                                        : Camera.Constants.Type.back
-                                );
-                            }}>
-                            <MaterialCommunityIcons name='cached' size={40} color="white" />
-
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ alignSelf: 'center' }} onPress={async () => {
-                            if (cameraRef) {
-                                let photo = await cameraRef.takePictureAsync();
-                                console.log('photo', photo);
-                                setImage(photo.uri);
-                            }
-                        }}>
-                            <View style={{
-                                borderWidth: 2,
-                                borderRadius: 25,
-                                borderColor: 'white',
-                                height: 50,
-                                width: 50,
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center'
-                            }}
-                            >
-                                <View style={{
-                                    borderWidth: 2,
-                                    borderRadius: 25,
-                                    borderColor: 'white',
-                                    height: 40,
-                                    width: 40,
-                                    backgroundColor: 'white'
-                                }} >
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ alignSelf: 'center' }} onPress={async () => {
-                            if (!recording) {
-                                setRecording(true)
-                                let video = await cameraRef.recordAsync();
-                                console.log('video', video);
-                            } else {
-                                setRecording(false)
-                                cameraRef.stopRecording()
-                            }
-                        }}>
-                            <View style={{
-                                borderWidth: 2,
-                                borderRadius: 25,
-                                borderColor: 'red',
-                                height: 50,
-                                width: 50,
-                                display: 'flex',
-                                justifyContent: 'center',
-                                alignItems: 'center'
-                            }}
-                            >
-                                <View style={{
-                                    borderWidth: 2,
-                                    borderRadius: 25,
-                                    borderColor: 'red',
-                                    height: 40,
-                                    width: 40,
-                                    backgroundColor: 'red'
-                                }} >
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    </View>
-                    {image && <Image source={{ uri: image }} style={{ flex: 1 }} />}
-                </View>
-            </Camera>
-        </View>
-    );
-}
+                      }}
+                      onPress={()=>this.takePicture()}
+                      >
+                      <MaterialCommunityIcons
+                          name="circle-slice-8"
+                          style={{ color: "#fff", fontSize: 40}}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{
+                        alignSelf: 'flex-end',
+                        alignItems: 'center',
+                        backgroundColor: 'transparent',
+                      }}
+                      onPress={()=>this.handleCameraType()}
+                      >
+                      <MaterialCommunityIcons
+                          name="camera-switch"
+                          style={{ color: "#fff", fontSize: 40}}
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </Camera>
+            </View>
+          );
+        }
+    } 
+}      
+export default CameraClass;
